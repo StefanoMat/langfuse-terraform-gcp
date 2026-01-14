@@ -26,6 +26,12 @@ module "langfuse" {
   langfuse_chart_version = "1.5.14"
 }
 
+provider "google" {
+  # Required: Configure the GCP project ID
+  project = ""
+  region  = "us-central1"
+}
+
 provider "kubernetes" {
   host                   = module.langfuse.cluster_host
   cluster_ca_certificate = module.langfuse.cluster_ca_certificate
