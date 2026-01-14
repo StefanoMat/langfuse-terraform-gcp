@@ -1,7 +1,7 @@
 module "langfuse" {
   source = "../.."
 
-  domain = "langfuse.example.com"
+  domain = "langfuse.kaeferdev.com"
 
   # Optional use a different name for your installation
   # e.g. when using the module multiple times on the same GCP account
@@ -24,6 +24,12 @@ module "langfuse" {
 
   # Optional: Configure the Langfuse Helm chart version
   langfuse_chart_version = "1.5.14"
+}
+
+provider "google" {
+  # Required: Configure the GCP project ID
+  project = ""
+  region  = "us-central1"
 }
 
 provider "kubernetes" {
