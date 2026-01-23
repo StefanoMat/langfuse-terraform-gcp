@@ -45,6 +45,18 @@ variable "database_instance_availability_type" {
   default     = "REGIONAL"
 }
 
+variable "database_backup_enabled" {
+  description = "Whether to enable Cloud SQL automated backups"
+  type        = bool
+  default     = true
+}
+
+variable "database_pitr_enabled" {
+  description = "Whether to enable Cloud SQL point-in-time recovery"
+  type        = bool
+  default     = true
+}
+
 variable "cache_tier" {
   description = "The service tier of the instance"
   type        = string
