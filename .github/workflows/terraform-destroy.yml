@@ -1,0 +1,58 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to confirm'
+        required: true
+        type: string
+
+env:
+  TF_VERSION: '1.7.0'
+  TF_WORKING_DIR: kaeferdev
+
+jobs:
+  destroy:
+    name: Terraform Destroy (prd)
+    if: github.event.inputs.confirm == 'destroy'
+    runs-on: ubuntu-latest
+    environment: prd
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.GCP_PROJECT }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      # Destroy K8s resources first (Helm, namespaces, secrets)
+      - name: Terraform Destroy - Kubernetes Resources
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform destroy -auto-approve \
+            -target=module.langfuse.helm_release.langfuse \
+            -target=module.langfuse.kubernetes_namespace.langfuse \
+            -target=module.langfuse.kubernetes_secret.langfuse \
+            -target=module.langfuse.kubernetes_manifest.https_redirect || true
+
+      # Destroy everything else
+      - name: Terraform Destroy - All
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform destroy -auto-approve
