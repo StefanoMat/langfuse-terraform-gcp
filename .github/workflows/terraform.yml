@@ -20,8 +20,8 @@ env:
   TF_WORKING_DIR: kaeferdev
 
 jobs:
-  plan:
-    name: Terraform Plan
+  apply:
+    name: Terraform
     runs-on: ubuntu-latest
     environment: prd
     permissions:
@@ -60,10 +60,23 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform validate -no-color
 
+      # Step 1: Apply GKE cluster and DNS first (needed for kubernetes provider)
+      - name: Terraform Apply - Infrastructure
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform apply -auto-approve \
+            -target=module.langfuse.google_container_cluster.this \
+            -target=module.langfuse.google_dns_managed_zone.this \
+            -target=module.langfuse.google_compute_network.this \
+            -target=module.langfuse.google_compute_subnetwork.this \
+            -target=module.langfuse.google_service_networking_connection.private_service_connection
+
+      # Step 2: Full plan (now kubernetes provider can connect)
       - name: Terraform Plan
         id: plan
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform plan -no-color -out=tfplan
+        run: terraform plan -no-color
         continue-on-error: true
 
       - name: Comment PR with Plan
@@ -98,49 +111,8 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-      - name: Upload Plan
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan
-          path: ${{ env.TF_WORKING_DIR }}/tfplan
-
-  apply:
-    name: Terraform Apply
-    needs: plan
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
-    environment: prd
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
-          project_id: ${{ vars.GCP_PROJECT }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform Init
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform init
-
-      - name: Download Plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan
-          path: ${{ env.TF_WORKING_DIR }}
-
+      # Step 3: Full apply
       - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve
