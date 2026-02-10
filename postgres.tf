@@ -10,8 +10,14 @@ resource "google_sql_database_instance" "this" {
     deletion_protection_enabled = var.deletion_protection # Applies setting on GCP level
 
     backup_configuration {
+<<<<<<< Updated upstream
       enabled                        = var.database_backup_enabled
       point_in_time_recovery_enabled = var.database_pitr_enabled
+=======
+      enabled                        = true
+      point_in_time_recovery_enabled = true
+      transaction_log_retention_days = 1 
+>>>>>>> Stashed changes
     }
 
     ip_configuration {
