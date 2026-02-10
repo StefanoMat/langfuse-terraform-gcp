@@ -5,30 +5,23 @@ provider "google" {
 module "langfuse" {
   source = "../"
 
-  domain = "langfuse.kaeferdev.com"
+  domain = "langfuse-hml.kaeferdev.com"
 
-  # Optional use a different name for your installation
-  # e.g. when using the module multiple times on the same GCP account
   name = "langfuse"
 
-  # Optional: Configure the Subnetwork
-  subnetwork_cidr = "10.0.0.0/16"
-
-  # Optional: Configure the Kubernetes cluster
+  subnetwork_cidr      = "10.0.0.0/16"
   kubernetes_namespace = "langfuse"
 
-  # Optional: Configure the database instances
+  # HML: recursos menores para economia
   database_instance_tier              = "db-f1-micro"
   database_instance_availability_type = "ZONAL"
-  database_instance_edition = "ENTERPRISE"
+  database_instance_edition           = "ENTERPRISE"
 
-  # Optional: Configure the cache
   cache_tier           = "BASIC"
   cache_memory_size_gb = 1
 
-  deletion_protection = false 
+  deletion_protection = false
 
-  # Optional: Configure the Langfuse Helm chart version
   langfuse_chart_version = "1.5.14"
 }
 
